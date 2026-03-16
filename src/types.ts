@@ -18,5 +18,7 @@ export interface StudentProgress {
 }
 
 export type PeerMessage = 
+  | { type: 'JOIN'; nickname: string }
   | { type: 'GAME_DATA'; data: GameData }
-  | { type: 'PROGRESS_UPDATE'; nickname: string; progress: number; isFinished: boolean };
+  | { type: 'PROGRESS_UPDATE'; nickname: string; progress: number; isFinished: boolean }
+  | { type: 'SHOW_ANSWERS' };

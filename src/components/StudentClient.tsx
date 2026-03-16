@@ -11,15 +11,15 @@ interface StudentClientProps {
 }
 
 export default function StudentClient({ hostId, nickname }: StudentClientProps) {
-  const { gameData, isConnected, sendToHost, connectToHost, error } = useStudentPeer();
+  const { gameData, isConnected, sendToHost, connectToHost, error, showAnswers } = useStudentPeer();
   const [coloredCells, setColoredCells] = useState<Set<string>>(new Set());
   const [isEraser, setIsEraser] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
-    if (hostId) connectToHost(hostId);
-  }, [hostId, connectToHost]);
+    if (hostId) connectToHost(hostId, nickname);
+  }, [hostId, nickname, connectToHost]);
 
   const handleCellAction = (row: number, col: number) => {
     const key = `${row}-${col}`;
@@ -100,6 +100,68 @@ export default function StudentClient({ hostId, nickname }: StudentClientProps) 
       <Footer />
     </div>
   );
+
+  if (showAnswers && gameData) {
+    return (
+      <div className="min-h-screen bg-stone-900 text-white flex flex-col font-sans p-6">
+        <div className="max-w-4xl mx-auto w-full">
+          <h2 className="text-4xl font-black mb-8 text-emerald-400 uppercase tracking-tighter border-b-4 border-emerald-400 pb-4">
+            Quiz Answer Key
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div>
+              <h3 className="text-xl font-bold mb-4 uppercase text-stone-400 tracking-widest">Correct Answers</h3>
+              <div className="space-y-3">
+                {gameData.quizzes.map(quiz => (
+                  <div key={quiz.id} className="bg-stone-800 p-4 rounded-xl flex items-center justify-between border border-stone-700">
+                    <span className="font-black text-emerald-400 w-8">{quiz.id}.</span>
+                    <span className="flex-1 px-4 text-sm font-medium">{quiz.question}</span>
+                    <span className={`font-black text-xl ${quiz.answer === 'O' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {quiz.answer}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold mb-4 uppercase text-stone-400 tracking-widest">Completed Pixel Art</h3>
+              <div className="bg-stone-800 p-6 rounded-3xl border-2 border-stone-700 shadow-2xl">
+                <div 
+                  className="grid gap-0.5"
+                  style={{ 
+                    gridTemplateColumns: `repeat(${gameData.grid[0].length}, 1fr)`,
+                    aspectRatio: `${gameData.grid[0].length} / ${gameData.grid.length}`
+                  }}
+                >
+                  {gameData.grid.map((row, r) => (
+                    row.map((quizId, c) => {
+                      const quiz = gameData.quizzes.find(q => q.id === quizId);
+                      const isCorrect = quiz?.answer === 'O';
+                      return (
+                        <div 
+                          key={`${r}-${c}`}
+                          className={`w-full h-full ${isCorrect ? 'bg-emerald-500' : 'bg-stone-700/30'}`}
+                        />
+                      );
+                    })
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-12 w-full py-4 bg-white text-stone-900 rounded-2xl font-black text-xl hover:bg-stone-200 transition-all"
+          >
+            메인 화면으로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col font-sans">

@@ -19,6 +19,7 @@ export default function TeacherDashboard({ initialMode }: TeacherDashboardProps)
   const [printData, setPrintData] = useState<{ quizzes: Quiz[], design: Design } | null>(null);
   const [studentStats, setStudentStats] = useState<Record<string, StudentProgress>>({});
   const [isGameStarted, setIsGameStarted] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
 
   const handleCreateRoom = (id: string, quizzes: Quiz[], design: Design, mode: 'online' | 'print') => {
     if (mode === 'print') {
@@ -44,9 +45,25 @@ export default function TeacherDashboard({ initialMode }: TeacherDashboardProps)
     }
   };
 
+  const handleShowAnswers = () => {
+    broadcast({ type: 'SHOW_ANSWERS' });
+    setShowAnswers(true);
+  };
+
   useEffect(() => {
     messages.forEach(msg => {
-      if (msg.data.type === 'PROGRESS_UPDATE') {
+      if (msg.data.type === 'JOIN') {
+        setStudentStats(prev => ({
+          ...prev,
+          [msg.from]: {
+            id: msg.from,
+            nickname: msg.data.nickname,
+            progress: 0,
+            isFinished: false,
+            coloredCells: new Set()
+          }
+        }));
+      } else if (msg.data.type === 'PROGRESS_UPDATE') {
         setStudentStats(prev => ({
           ...prev,
           [msg.from]: {
@@ -147,7 +164,57 @@ export default function TeacherDashboard({ initialMode }: TeacherDashboardProps)
                       <div className="text-4xl font-black text-emerald-500">{finishedCount}</div>
                     </div>
                   </div>
+
+                  <div className="mt-8 pt-8 border-t-2 border-stone-100 space-y-4">
+                    <button 
+                      onClick={handleShowAnswers}
+                      disabled={showAnswers}
+                      className="w-full py-4 bg-stone-900 text-stone-100 rounded-2xl font-black text-lg hover:bg-stone-700 transition-all disabled:opacity-50"
+                    >
+                      {showAnswers ? 'ANSWERS SHOWN' : 'SHOW ANSWERS'}
+                    </button>
+                    <p className="text-[10px] text-stone-400 font-bold text-center uppercase">
+                      학생들에게 정답과 도안을 공개합니다
+                    </p>
+                  </div>
                 </div>
+
+                {showAnswers && window.gameData && (
+                  <div className="bg-stone-900 text-white border-4 border-stone-800 p-8 rounded-3xl shadow-[8px_8px_0px_0px_rgba(28,25,23,1)]">
+                    <h3 className="text-xl font-black uppercase mb-6 text-emerald-400">Answer Key</h3>
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                      {window.gameData.quizzes.map((quiz: Quiz) => (
+                        <div key={quiz.id} className="flex items-center justify-between text-sm border-b border-stone-800 pb-2">
+                          <span className="text-stone-500 font-bold">{quiz.id}.</span>
+                          <span className="flex-1 px-3 truncate">{quiz.question}</span>
+                          <span className={`font-black ${quiz.answer === 'O' ? 'text-emerald-400' : 'text-red-400'}`}>{quiz.answer}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-8">
+                      <div 
+                        className="grid gap-0.5 mx-auto max-w-[200px]"
+                        style={{ 
+                          gridTemplateColumns: `repeat(${window.gameData.grid[0].length}, 1fr)`,
+                          aspectRatio: `${window.gameData.grid[0].length} / ${window.gameData.grid.length}`
+                        }}
+                      >
+                        {window.gameData.grid.map((row: number[], r: number) => (
+                          row.map((quizId: number, c: number) => {
+                            const quiz = window.gameData.quizzes.find((q: Quiz) => q.id === quizId);
+                            const isCorrect = quiz?.answer === 'O';
+                            return (
+                              <div 
+                                key={`${r}-${c}`}
+                                className={`w-full h-full ${isCorrect ? 'bg-emerald-500' : 'bg-stone-800'}`}
+                              />
+                            );
+                          })
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Main Progress List */}

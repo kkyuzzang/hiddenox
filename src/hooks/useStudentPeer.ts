@@ -8,9 +8,10 @@ export const useStudentPeer = () => {
   const [error, setError] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
 
+  const [showAnswers, setShowAnswers] = useState(false);
   const connRef = useRef<any>(null);
 
-  const connectToHost = useCallback((hostId: string) => {
+  const connectToHost = useCallback((hostId: string, nickname: string) => {
     try {
       const newPeer = new Peer();
       
@@ -20,12 +21,16 @@ export const useStudentPeer = () => {
         conn.on('open', () => {
           setIsConnected(true);
           connRef.current = conn;
+          // Send join message immediately
+          conn.send({ type: 'JOIN', nickname });
         });
 
         conn.on('data', (data: any) => {
           const msg = data as PeerMessage;
           if (msg.type === 'GAME_DATA') {
             setGameData(msg.data);
+          } else if (msg.type === 'SHOW_ANSWERS') {
+            setShowAnswers(true);
           }
         });
 
@@ -62,5 +67,5 @@ export const useStudentPeer = () => {
     };
   }, [peer]);
 
-  return { gameData, isConnected, sendToHost, connectToHost, error };
+  return { gameData, isConnected, sendToHost, connectToHost, error, showAnswers };
 };
